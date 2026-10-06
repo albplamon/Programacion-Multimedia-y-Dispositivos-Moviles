@@ -3,42 +3,47 @@ package procesos;
 public class PrimosSecuencial {
 
     public static void main(String[] args) {
-        long n = 200_000;
+
+        long n = 200000;
 
         if (args.length == 1) {
             try {
                 n = Long.parseLong(args[0]);
             } catch (NumberFormatException e) {
-                System.err.println("N debe ser un número entero.");
+                System.err.println("N debe ser un numero");
                 System.exit(1);
             }
-        } else if (args.length > 1) {
-            System.err.println("Uso: java procesos.PrimosSecuencial [N]");
-            System.exit(1);
         }
 
-        long inicio = System.nanoTime();
+        long inicioTiempo = System.nanoTime();
 
-        long contador = 0;
-        for (long i = 1; i <= n; i++) {
+        int contador = 0;
+
+        for (int i = 1; i <= n; i++) {
             if (esPrimo(i)) {
                 contador++;
             }
         }
 
-        long ms = (System.nanoTime() - inicio) / 1_000_000;
+        long tiempo = (System.nanoTime() - inicioTiempo) / 1000000;
 
-        System.out.println("Total de primos en [1, " + n + "]: " + contador);
-        System.out.println("Tiempo total: " + ms + " ms");
+        System.out.println("Total de primos: " + contador);
+        System.out.println("Tiempo total: " + tiempo + " ms");
     }
 
-    private static boolean esPrimo(long n) {
-        if (n < 2) return false;
-        if (n == 2) return true;
-        if (n % 2 == 0) return false;
-        for (long i = 3; i * i <= n; i += 2) {
-            if (n % i == 0) return false;
+    public static boolean esPrimo(int numero) {
+
+        if (numero < 2) {
+            return false;
         }
+
+        for (int i = 2; i < numero; i++) {
+            if (numero % i == 0) {
+                return false;
+            }
+        }
+
         return true;
     }
 }
+

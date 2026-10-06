@@ -4,105 +4,126 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.List;
 
 public class MaestroProcesos {
 
     public static void main(String[] args) {
-        long n = 200_000;
-        int m = 4;
 
-        if (args.length != 0 && args.length != 2) {
-            System.err.println("Uso: java procesos.MaestroProcesos [N M]");
-            System.exit(1);
-        }
+        long n = 200000;
+        int m = 4;
 
         if (args.length == 2) {
             try {
                 n = Long.parseLong(args[0]);
                 m = Integer.parseInt(args[1]);
             } catch (NumberFormatException e) {
-                System.err.println("N y M deben ser números enteros.");
+                System.err.println("Los argumentos deben ser numeros");
                 System.exit(1);
             }
         }
 
         if (n < 1 || m < 1) {
-            System.err.println("N y M deben ser mayores que 0.");
+            System.err.println("N y M deben ser mayores que 0");
             System.exit(1);
         }
+
         if (m > n) {
-            m = (int) n; // no tiene sentido tener más procesos que números
+            m = (int) n;
         }
 
-        long inicioTiempo = System.nanoTime();
+        long tiempoInicio = System.nanoTime();
 
-        String java = System.getProperty("java.home") + "/bin/java";
+        String java = System.getProperty("java.home") + "/bin/java.exe";
         String classpath = System.getProperty("java.class.path");
 
-        // División equitativa: todos reciben n/m y los primeros n%m reciben uno más
-        long base = n / m;
+        long parte = n / m;
         long resto = n % m;
 
-        List<Process> procesos = new ArrayList<>();
-        List<String> rangos = new ArrayList<>();
+        ArrayList<Process> procesos = new ArrayList<>();
+
+        long inicio = 1;
 
         try {
-            // 1. Lanzar los M procesos sin esperar (así corren en paralelo)
-            long ini = 1;
+
             for (int i = 0; i < m; i++) {
-                long tam = base + (i < resto ? 1 : 0);
-                long fin = ini + tam - 1;
 
-                ProcessBuilder pb = new ProcessBuilder(
-                        java, "-cp", classpath,
+                long cantidad = parte;
+
+                if (i < resto) {
+                    cantidad++;
+                }
+
+                long fin = inicio + cantidad - 1;
+
+                ProcessBuilder proceso = new ProcessBuilder(
+                        java,
+                        "-cp",
+                        classpath,
                         "procesos.TrabajadorPrimo",
-                        String.valueOf(ini), String.valueOf(fin));
+                        String.valueOf(inicio),
+                        String.valueOf(fin)
+                );
 
-                procesos.add(pb.start());
-                rangos.add("[" + ini + ", " + fin + "]");
-                ini = fin + 1;
+                procesos.add(proceso.start());
+
+                inicio = fin + 1;
             }
 
-            // 2. Recoger resultados
             long total = 0;
-            boolean hayErrores = false;
 
             for (int i = 0; i < procesos.size(); i++) {
-                Process p = procesos.get(i);
 
-                try (BufferedReader out = new BufferedReader(
-                        new InputStreamReader(p.getInputStream()));
-                     BufferedReader err = new BufferedReader(
-                             new InputStreamReader(p.getErrorStream()))) {
+                Process proceso = procesos.get(i);
 
-                    String linea = out.readLine();   // stdout del hijo
-                    int codigo = p.waitFor();        // espera y obtiene el código de salida
+                BufferedReader lector = new BufferedReader(
+                        new InputStreamReader(proceso.getInputStream())
+                );
 
-                    if (codigo == 0 && linea != null) {
-                        long parcial = Long.parseLong(linea.trim());
-                        System.out.println("Proceso " + i + " " + rangos.get(i)
-                                + ": " + parcial + " primos");
-                        total += parcial;
-                    } else {
-                        hayErrores = true;
-                        System.err.println("Proceso " + i + " " + rangos.get(i)
-                                + " falló (código " + codigo + "): " + err.readLine());
+                BufferedReader error = new BufferedReader(
+                        new InputStreamReader(proceso.getErrorStream())
+                );
+
+                String resultado = lector.readLine();
+
+                int codigo = proceso.waitFor();
+
+                if (codigo == 0 && resultado != null) {
+
+                    long primos = Long.parseLong(resultado);
+                    total += primos;
+
+                    System.out.println(
+                            "Proceso " + i + ": " + primos + " primos"
+                    );
+
+                } else {
+
+                    System.err.println("El proceso " + i + " ha fallado");
+
+                    String mensaje = error.readLine();
+
+                    if (mensaje != null) {
+                        System.err.println(mensaje);
                     }
                 }
+
+                lector.close();
+                error.close();
             }
 
-            long ms = (System.nanoTime() - inicioTiempo) / 1_000_000;
+            long tiempo = (System.nanoTime() - tiempoInicio) / 1000000;
 
-            if (hayErrores) {
-                System.err.println("Algún proceso falló; el total puede ser incorrecto.");
-            }
-            System.out.println("Total de primos en [1, " + n + "]: " + total);
-            System.out.println("Tiempo total: " + ms + " ms");
+            System.out.println("Total de primos: " + total);
+            System.out.println("Tiempo total: " + tiempo + " ms");
 
-        } catch (IOException | InterruptedException e) {
-            System.err.println("Error: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error al crear los procesos");
+            System.exit(1);
+
+        } catch (InterruptedException e) {
+            System.err.println("El proceso fue interrumpido");
             System.exit(1);
         }
     }
 }
+
