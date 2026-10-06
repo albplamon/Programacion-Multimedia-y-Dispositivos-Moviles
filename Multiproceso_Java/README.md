@@ -1,58 +1,99 @@
-Práctica: Multiproceso en Java — Cálculo paralelo de primos
-Cuenta los números primos en el rango `[1, N]` repartiendo el trabajo entre `M` procesos hijos, y lo compara con una versión secuencial.
-Estructura
-```
-procesos/
-├── TrabajadorPrimo.java    # Proceso hijo: cuenta primos en [inicio, fin]
-├── MaestroProcesos.java    # Proceso padre: reparte el rango y lanza M hijos
-└── PrimosSecuencial.java   # Versión sin procesos, para comparar
-README.md
-```
-Requisitos
-JDK 11 o superior (`java -version` y `javac -version` para comprobarlo).
-Compilación
-Desde la carpeta raíz del proyecto (la que contiene `procesos/`):
+# Práctica de procesos en Java
+
+En esta práctica contamos cuántos números primos hay entre `1` y `N`.
+
+El trabajo se puede hacer de dos formas:
+
+* Usando varios procesos para repartir el trabajo.
+* De forma normal, sin procesos, para comparar el tiempo.
+
+## Archivos
+
+Dentro de la carpeta `procesos` están las tres clases:
+
+* `TrabajadorPrimo.java`: cuenta los primos de un rango.
+* `MaestroProcesos.java`: divide el trabajo y crea los procesos.
+* `PrimosSecuencial.java`: cuenta los primos sin usar procesos.
+
+## Compilar
+
+Desde la carpeta principal del proyecto:
+
 ```bash
 javac procesos/*.java
 ```
-Ejecución
-Todos los comandos se lanzan desde la misma carpeta raíz.
-Maestro (versión con procesos)
+
+## Ejecutar
+
+### Maestro
+
+Si no ponemos nada, usa `N = 200000` y `M = 4`.
+
 ```bash
-java procesos.MaestroProcesos              # valores por defecto: N = 200000, M = 4
-java procesos.MaestroProcesos <N> <M>      # con parámetros
+java procesos.MaestroProcesos
 ```
-Ejemplo:
+
+También podemos poner nuestros propios valores:
+
 ```bash
 java procesos.MaestroProcesos 5000000 8
 ```
-Muestra los primos de cada subrango, el total y el tiempo empleado.
-Versión secuencial
+
+El programa divide el rango entre los procesos, suma los resultados y muestra el tiempo que ha tardado.
+
+### Secuencial
+
+Para hacerlo sin procesos:
+
 ```bash
-java procesos.PrimosSecuencial             # valor por defecto: N = 200000
-java procesos.PrimosSecuencial <N>
+java procesos.PrimosSecuencial
 ```
-Trabajador (programa independiente)
-Normalmente lo lanza el maestro, pero también se puede ejecutar a mano:
+
+También podemos indicar el valor de `N`:
+
 ```bash
-java procesos.TrabajadorPrimo <inicio> <fin>
+java procesos.PrimosSecuencial 5000000
 ```
-Si todo va bien, imprime el número de primos por `stdout` y termina con código `0`.
-Si los argumentos son incorrectos, imprime un error por `stderr` y termina con código `1`.
+
+### Trabajador
+
+El trabajador normalmente lo ejecuta el maestro, pero también podemos probarlo directamente:
+
 ```bash
-java procesos.TrabajadorPrimo 1 100     # imprime 25
-java procesos.TrabajadorPrimo abc 10    # error, código 1
-java procesos.TrabajadorPrimo 50 10     # error (inicio > fin), código 1
+java procesos.TrabajadorPrimo 1 100
 ```
-Para ver el código de salida: `echo $?` (Linux/Mac) o `echo %ERRORLEVEL%` (Windows).
-Verificación
-Con `N = 200000`, tanto el maestro como el secuencial deben dar 17984 primos:
+
+En este caso debería mostrar:
+
+```text
+25
+```
+
+Si ponemos mal los números, muestra un error.
+
+## Comprobar el resultado
+
+Con `N = 200000`, los dos programas deberían dar el mismo resultado:
+
 ```bash
 java procesos.MaestroProcesos 200000 4
 java procesos.PrimosSecuencial 200000
 ```
-Notas
-Cada proceso hijo arranca una JVM nueva, lo que añade una sobrecarga inicial considerable. Con rangos pequeños (como `N = 200000`) el multiproceso puede ser más lento que el secuencial; con `N` grande el paralelismo empieza a compensar.
-La comunicación entre padre e hijo se hace por `stdout`: el hijo imprime solo el número y el padre lo lee con un `BufferedReader`.
-El padre pasa a los hijos su propio classpath, por lo que no hace falta configurarlo aparte.
-Los subrangos tienen el mismo tamaño (±1), pero no el mismo coste: comprobar números grandes cuesta más, así que el último proceso suele terminar el último.
+
+El resultado debe ser:
+
+```text
+17984
+```
+
+## Cosas a tener en cuenta
+
+El programa con procesos no siempre tiene que ser más rápido.
+
+Cada proceso tiene que arrancar una JVM nueva, y eso tarda un tiempo. Por eso, con números pequeños puede ser incluso más lento que hacerlo de forma secuencial.
+
+Con números más grandes se puede notar más la ventaja de repartir el trabajo entre varios procesos.
+
+El trabajador manda el resultado por `stdout` y el maestro lo recoge usando `BufferedReader`.
+
+Los rangos se reparten de forma bastante igual entre los procesos, aunque algunos pueden tardar más porque comprobar números más grandes cuesta más.
